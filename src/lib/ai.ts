@@ -5,37 +5,25 @@ const openai = new OpenAI({
 });
 
 export interface AnalysisResult {
-  overall_score: number;
-  category_scores: {
-    keywords: number;
-    formatting: number;
-    achievements: number;
-    relevance: number;
-    readability: number;
-  };
-  findings: string[];
-  missing_keywords: string[];
+  overallScore: number;
+  scores: Record<string, number>;
+  keyFindings: string[];
 }
 
 export interface Suggestion {
-  priority: "high" | "medium" | "low";
-  category: "keywords" | "structure" | "content" | "formatting";
+  priority: string;
+  category: string;
+  title: string;
   description: string;
   before?: string;
   after?: string;
 }
 
-export interface SuggestionsResult {
-  suggestions: Suggestion[];
-}
-
 export async function analyzeResume(
   resumeText: string,
   jobDescription: string | null,
-  isPro: boolean
+  model: string
 ): Promise<AnalysisResult> {
-  const model = isPro ? "gpt-4o" : "gpt-4o-mini";
-
   const response = await openai.chat.completions.create({
     model,
     temperature: 0.3,
@@ -50,9 +38,8 @@ export async function analyzeResume(
         role: "user",
         content: `Analyze the following resume and provide:
 1. An overall ATS compatibility score (0-100)
-2. Scores for: Keyword Optimization, Formatting & Structure, Achievement Quantification, Relevance, Readability (each 0-100)
+2. Scores for: keywords, formatting, achievements, relevance, readability (each 0-100)
 3. A list of 4-6 key findings/issues
-4. A list of missing keywords (if job description provided)
 
 Resume:
 ${resumeText}
@@ -61,10 +48,9 @@ ${jobDescription ? `Job Description:\n${jobDescription}` : "No job description p
 
 Respond in JSON format:
 {
-  "overall_score": number,
-  "category_scores": { "keywords": number, "formatting": number, "achievements": number, "relevance": number, "readability": number },
-  "findings": [string],
-  "missing_keywords": [string]
+  "overallScore": number,
+  "scores": { "keywords": number, "formatting": number, "achievements": number, "relevance": number, "readability": number },
+  "keyFindings": [string]
 }`,
       },
     ],
@@ -80,10 +66,9 @@ export async function generateSuggestions(
   resumeText: string,
   jobDescription: string | null,
   analysis: AnalysisResult,
-  isPro: boolean
-): Promise<SuggestionsResult> {
-  const model = isPro ? "gpt-4o" : "gpt-4o-mini";
-
+  focusAreas: string[],
+  model: string
+): Promise<Suggestion[]> {
   const response = await openai.chat.completions.create({
     model,
     temperature: 0.3,
@@ -99,10 +84,12 @@ export async function generateSuggestions(
         content: `Given this analysis: ${JSON.stringify(analysis)}
 And original resume: ${resumeText}
 ${jobDescription ? `And target job: ${jobDescription}` : ""}
+Focus areas: ${focusAreas.join(", ")}
 
 Generate 5-8 specific suggestions. Each should have:
 - priority: "high" | "medium" | "low"
 - category: "keywords" | "structure" | "content" | "formatting"
+- title: short title
 - description: clear actionable text
 - before: example snippet from current resume (if applicable)
 - after: improved version of that snippet
@@ -115,25 +102,21 @@ Respond in JSON: { "suggestions": [...] }`,
 
   const content = response.choices[0]?.message?.content;
   if (!content) throw new Error("No response from AI");
-  return JSON.parse(content) as SuggestionsResult;
+  const parsed = JSON.parse(content);
+  return parsed.suggestions as Suggestion[];
 }
 
 export async function rewriteResume(
   resumeText: string,
   jobDescription: string | null,
-  suggestions: SuggestionsResult,
+  suggestions: Suggestion[],
   tone: string,
-  format: string,
-  focusAreas: string[],
-  isPro: boolean
-) {
-  const model = isPro ? "gpt-4o" : "gpt-4o-mini";
-
-  const stream = await openai.chat.completions.create({
+  model: string
+): Promise<string> {
+  const response = await openai.chat.completions.create({
     model,
     temperature: 0.6,
     max_tokens: 3000,
-    stream: true,
     messages: [
       {
         role: "system",
@@ -145,8 +128,6 @@ export async function rewriteResume(
         content: `Original resume: ${resumeText}
 ${jobDescription ? `Target job: ${jobDescription}` : ""}
 Tone: ${tone}
-Format: ${format}
-Focus areas: ${focusAreas.join(", ")}
 Suggestions to incorporate: ${JSON.stringify(suggestions)}
 
 Output the complete optimized resume as clean formatted text.`,
@@ -154,5 +135,7 @@ Output the complete optimized resume as clean formatted text.`,
     ],
   });
 
-  return stream;
+  const content = response.choices[0]?.message?.content;
+  if (!content) throw new Error("No response from AI");
+  return content;
 }

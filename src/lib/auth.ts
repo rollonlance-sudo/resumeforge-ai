@@ -32,13 +32,13 @@ export const authOptions: NextAuthOptions = {
           where: { email: credentials.email },
         });
 
-        if (!user || !user.passwordHash) {
+        if (!user || !user.password) {
           throw new Error("Invalid credentials");
         }
 
         const isValid = await bcrypt.compare(
           credentials.password,
-          user.passwordHash
+          user.password
         );
 
         if (!isValid) {

@@ -1,8 +1,6 @@
 import Stripe from "stripe";
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-12-18.acacia",
-});
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function createCheckoutSession(
   userId: string,
@@ -61,7 +59,7 @@ export async function handleWebhookEvent(event: Stripe.Event) {
 
     case "invoice.payment_succeeded": {
       const invoice = event.data.object as Stripe.Invoice;
-      const subscriptionId = invoice.subscription as string;
+      const subscriptionId = (invoice as unknown as Record<string, unknown>).subscription as string;
       if (subscriptionId) {
         await prisma.user.updateMany({
           where: { stripeSubscriptionId: subscriptionId },
@@ -73,7 +71,7 @@ export async function handleWebhookEvent(event: Stripe.Event) {
 
     case "invoice.payment_failed": {
       const invoice = event.data.object as Stripe.Invoice;
-      const subscriptionId = invoice.subscription as string;
+      const subscriptionId = (invoice as unknown as Record<string, unknown>).subscription as string;
       if (subscriptionId) {
         // Could send warning email here
         console.log(`Payment failed for subscription ${subscriptionId}`);

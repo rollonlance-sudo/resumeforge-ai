@@ -12,7 +12,7 @@ model User {
   name                 String?
   email                String         @unique
   emailVerified        DateTime?
-  passwordHash         String?
+  password             String?
   image                String?
   plan                 String         @default("free")
   stripeCustomerId     String?
@@ -72,10 +72,9 @@ model Optimization {
   format          String?
   focusAreas      String[]
   overallScore    Int?
-  categoryScores  Json?
-  findings        Json?
+  scores          Json?
+  keyFindings     Json?
   suggestions     Json?
-  missingKeywords Json?
   createdAt       DateTime @default(now())
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 

@@ -3,7 +3,8 @@ export async function extractTextFromFile(
   mimeType: string
 ): Promise<string> {
   if (mimeType === "application/pdf") {
-    const pdfParse = (await import("pdf-parse")).default;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdfParse = require("pdf-parse");
     const data = await pdfParse(buffer);
     return data.text;
   }
