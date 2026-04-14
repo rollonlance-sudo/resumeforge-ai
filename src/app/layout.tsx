@@ -11,6 +11,15 @@ export const metadata: Metadata = {
   title: "ResumeForge AI - AI Resume Optimizer & Content Generator",
   description:
     "Optimize your resume with AI. Get ATS-compatible resumes tailored to specific job descriptions in seconds.",
+  icons: {
+    icon: "/favicon.png",
+    apple: "/apple-touch-icon.png",
+  },
+  openGraph: {
+    title: "ResumeForge AI",
+    description: "AI-Powered Resume Optimizer",
+    images: [{ url: "/logo-512.png", width: 512, height: 512 }],
+  },
 };
 
 export default function RootLayout({
