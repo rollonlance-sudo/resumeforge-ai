@@ -1,13 +1,21 @@
 import Stripe from "stripe";
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+let _stripe: Stripe | null = null;
+export function getStripe() {
+  if (!_stripe) {
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+  }
+  return _stripe;
+}
+/** @deprecated Use getStripe() instead */
+export const stripe = undefined as unknown as Stripe;
 
 export async function createCheckoutSession(
   userId: string,
   email: string,
   stripeCustomerId?: string | null
 ) {
-  const session = await stripe.checkout.sessions.create({
+  const session = await getStripe().checkout.sessions.create({
     customer: stripeCustomerId || undefined,
     customer_email: stripeCustomerId ? undefined : email,
     mode: "subscription",
@@ -29,7 +37,7 @@ export async function createCheckoutSession(
 }
 
 export async function createPortalSession(stripeCustomerId: string) {
-  const session = await stripe.billingPortal.sessions.create({
+  const session = await getStripe().billingPortal.sessions.create({
     customer: stripeCustomerId,
     return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings`,
   });

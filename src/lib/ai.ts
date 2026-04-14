@@ -1,8 +1,12 @@
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let _openai: OpenAI | null = null;
+function getOpenAI() {
+  if (!_openai) {
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
 
 export interface AnalysisResult {
   overallScore: number;
@@ -24,7 +28,7 @@ export async function analyzeResume(
   jobDescription: string | null,
   model: string
 ): Promise<AnalysisResult> {
-  const response = await openai.chat.completions.create({
+  const response = await getOpenAI().chat.completions.create({
     model,
     temperature: 0.3,
     max_tokens: 1000,
@@ -69,7 +73,7 @@ export async function generateSuggestions(
   focusAreas: string[],
   model: string
 ): Promise<Suggestion[]> {
-  const response = await openai.chat.completions.create({
+  const response = await getOpenAI().chat.completions.create({
     model,
     temperature: 0.3,
     max_tokens: 1500,
@@ -113,7 +117,7 @@ export async function rewriteResume(
   tone: string,
   model: string
 ): Promise<string> {
-  const response = await openai.chat.completions.create({
+  const response = await getOpenAI().chat.completions.create({
     model,
     temperature: 0.6,
     max_tokens: 3000,
