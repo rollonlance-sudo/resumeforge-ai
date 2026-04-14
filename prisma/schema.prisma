@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String         @id @default(uuid())
+  name                 String?
+  email                String         @unique
+  emailVerified        DateTime?
+  passwordHash         String?
+  image                String?
+  plan                 String         @default("free")
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  defaultTone          String         @default("professional")
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  accounts             Account[]
+  sessions             Session[]
+  optimizations        Optimization[]
+  usage                Usage[]
+}
+
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Optimization {
+  id              String   @id @default(uuid())
+  userId          String
+  originalResume  String   @db.Text
+  jobDescription  String?  @db.Text
+  optimizedResume String?  @db.Text
+  jobTitle        String?
+  company         String?
+  tone            String?
+  format          String?
+  focusAreas      String[]
+  overallScore    Int?
+  categoryScores  Json?
+  findings        Json?
+  suggestions     Json?
+  missingKeywords Json?
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+}
+
+model Usage {
+  id                String @id @default(uuid())
+  userId            String
+  month             String
+  optimizationCount Int    @default(0)
+  user              User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month])
+  @@index([userId, month])
+}
